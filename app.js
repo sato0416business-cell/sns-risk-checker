@@ -330,3 +330,14 @@ function clamp(value) {
 }
 
 updateCharacterCount();
+
+if (window.parent !== window) {
+  const reportHeight = () => {
+    window.parent.postMessage({
+      type: "checker-height",
+      height: document.documentElement.scrollHeight,
+    }, "*");
+  };
+  new ResizeObserver(reportHeight).observe(document.body);
+  window.addEventListener("load", reportHeight);
+}

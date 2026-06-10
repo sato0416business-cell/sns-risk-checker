@@ -100,6 +100,56 @@ main {
   margin: 0 auto;
 }
 
+.checker-frame-section {
+  margin-bottom: 44px;
+}
+
+.frame-privacy-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 16px;
+  border: 1px solid #bfe1d6;
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  background: var(--mint-soft);
+  color: #276e5b;
+}
+
+.frame-privacy-note strong {
+  font-size: 0.82rem;
+}
+
+.frame-privacy-note span {
+  font-size: 0.72rem;
+}
+
+.checker-frame {
+  display: block;
+  width: 100%;
+  height: 1450px;
+  border: 1px solid var(--line);
+  border-radius: 0 0 8px 8px;
+  background: var(--bg);
+}
+
+.embedded-checker .site-header,
+.embedded-checker .intro,
+.embedded-checker .knowledge-section,
+.embedded-checker .site-footer {
+  display: none;
+}
+
+.embedded-checker main {
+  width: min(1080px, calc(100% - 24px));
+  padding-top: 18px;
+}
+
+.embedded-checker .notice-band {
+  margin-bottom: 20px;
+}
+
 .intro {
   max-width: 670px;
   padding: 64px 0 34px;
@@ -768,6 +818,11 @@ dialog::backdrop {
 
   .intro {
     padding: 38px 2px 24px;
+  }
+
+  .frame-privacy-note {
+    display: grid;
+    gap: 4px;
   }
 
   h1 {
