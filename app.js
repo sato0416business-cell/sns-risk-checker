@@ -1,309 +1,332 @@
 const state = {
-  money: 120,
-  subs: 0,
-  research: 0,
-  labLevel: 1,
-  videos: 0,
-  auto: false,
-  boostUntil: 0,
-  currentGenre: "trivia",
-  upload: 0,
-  lastTick: Date.now(),
-  nodes: [
-    { id: "source", icon: "S", name: "素材収集", level: 1, baseCost: 80, speed: 1.15, quality: 5, risk: 0 },
-    { id: "script", icon: "T", name: "台本AI", level: 1, baseCost: 110, speed: 0.95, quality: 12, risk: -2 },
-    { id: "visual", icon: "V", name: "映像生成", level: 1, baseCost: 140, speed: 0.75, quality: 18, risk: 2 },
-    { id: "voice", icon: "A", name: "音声合成", level: 1, baseCost: 125, speed: 0.85, quality: 10, risk: -1 },
-    { id: "upload", icon: "U", name: "アップロード", level: 1, baseCost: 160, speed: 0.7, quality: 4, risk: 0 },
-  ],
-  skills: [
-    { id: "script", name: "台本力", value: 12 },
-    { id: "visual", name: "映像力", value: 10 },
-    { id: "trend", name: "トレンド理解", value: 8 },
-    { id: "safety", name: "炎上回避", value: 10 },
-  ],
-  researches: [
-    { id: "thumbnail", name: "サムネ生成AI", cost: 18, done: false, text: "クリック率とバズ率を少し上げる" },
-    { id: "safety", name: "炎上チェック", cost: 32, done: false, text: "リスクを下げ、高単価動画を安定させる" },
-    { id: "translate", name: "多言語展開", cost: 55, done: false, text: "登録者増加と収益倍率を上げる" },
-    { id: "agent", name: "自律投稿エージェント", cost: 90, done: false, text: "自動化時の生成速度を上げる" },
-  ],
+  platform: "x",
+  imageUrl: "",
 };
 
-const genres = [
-  { id: "trivia", name: "雑学ショート", unlock: 1, quality: 0, viral: 8, risk: 5, text: "低コストで回転が早い。序盤向け。" },
-  { id: "pets", name: "癒しペット", unlock: 1, quality: -2, viral: 11, risk: 2, text: "安定して伸びる。登録者が増えやすい。" },
-  { id: "urban", name: "都市伝説", unlock: 2, quality: 6, viral: 17, risk: 14, text: "バズりやすいが炎上チェックが必要。" },
-  { id: "product", name: "商品紹介", unlock: 3, quality: 10, viral: 8, risk: 10, text: "収益単価が高い。サムネ品質が重要。" },
-  { id: "drama", name: "AIショートドラマ", unlock: 4, quality: 18, viral: 14, risk: 12, text: "制作は重いが長期収益が強い。" },
+const categoryNames = {
+  general: "通常",
+  medical: "医療・健康",
+  beauty: "美容",
+  finance: "金融・投資",
+  career: "転職",
+  sidejob: "副業",
+};
+
+const rules = [
+  {
+    id: "attack",
+    pattern: /(バカ|無能|クズ|詐欺師|消えろ|死ね|気持ち悪い|情弱|頭が悪い|最低な人)/i,
+    title: "攻撃的に受け取られる表現",
+    detail: "個人や属性への強い否定は、誹謗中傷や炎上につながる可能性があります。",
+    risk: { fire: 34, compliance: 22, misunderstanding: 16 },
+  },
+  {
+    id: "discrimination",
+    pattern: /(女のくせに|男のくせに|日本人は|外国人は|老人は|若者は|障害者は|デブ|ブス)/i,
+    title: "属性をひとまとめにする表現",
+    detail: "性別・年代・国籍・外見などへの一般化は、差別的だと受け取られる可能性があります。",
+    risk: { fire: 38, compliance: 25, misunderstanding: 20 },
+  },
+  {
+    id: "absolute",
+    pattern: /(絶対に|必ず|100[%％]|確実に|間違いなく|誰でも|例外なく|完全に)/i,
+    title: "強い断定・絶対表現",
+    detail: "条件や個人差を省いた断定は、誤解や表示上のリスクがある可能性があります。",
+    risk: { fire: 14, compliance: 24, misunderstanding: 28 },
+  },
+  {
+    id: "ranking",
+    pattern: /(No\.?\s*1|ナンバーワン|業界初|日本一|世界一|顧客満足度1位)/i,
+    title: "根拠の確認が必要な優位表現",
+    detail: "No.1や業界初などは、調査条件や客観的な根拠を確認した方がよい表現です。",
+    risk: { fire: 12, compliance: 32, misunderstanding: 22 },
+  },
+  {
+    id: "guarantee",
+    pattern: /(治る|完治|痩せる|若返る|儲かる|稼げる|年収が上がる|成功できる|元本保証|損しない)/i,
+    title: "効果・利益を保証するような表現",
+    detail: "結果を保証するように見えるため、条件・根拠・個人差を確認した方がよい表現です。",
+    risk: { fire: 18, compliance: 35, misunderstanding: 30 },
+  },
+  {
+    id: "unclear-source",
+    pattern: /(みんな言ってる|常識です|科学的に証明|専門家も認めた|話題沸騰|利用者の\d+[%％])/i,
+    title: "根拠が読み取れない表現",
+    detail: "出典が示されていない場合、誇張や根拠不明と受け取られる可能性があります。",
+    risk: { fire: 12, compliance: 25, misunderstanding: 25 },
+  },
+  {
+    id: "pressure",
+    pattern: /(今すぐ|知らないと損|やらない人は|買わない理由がない|人生終わる|一生後悔)/i,
+    title: "過度に不安をあおる表現",
+    detail: "読み手に強い圧力を与え、反発や不信感につながる可能性があります。",
+    risk: { fire: 18, compliance: 15, misunderstanding: 15 },
+  },
 ];
 
 const els = {
-  money: document.querySelector("#money"),
-  subs: document.querySelector("#subs"),
-  research: document.querySelector("#research"),
-  labLevel: document.querySelector("#lab-level"),
-  board: document.querySelector("#pipeline-board"),
-  uploadFill: document.querySelector("#upload-fill"),
-  currentGenre: document.querySelector("#current-genre"),
-  videoStatus: document.querySelector("#video-status"),
-  quality: document.querySelector("#quality"),
-  viral: document.querySelector("#viral"),
-  risk: document.querySelector("#risk"),
-  researchList: document.querySelector("#research-list"),
-  skillList: document.querySelector("#skill-list"),
-  genreList: document.querySelector("#genre-list"),
-  eventLog: document.querySelector("#event-log"),
-  autoButton: document.querySelector("#auto-button"),
-  aiRank: document.querySelector("#ai-rank"),
+  postText: document.querySelector("#post-text"),
+  category: document.querySelector("#category"),
+  characterCount: document.querySelector("#character-count"),
+  characterLimit: document.querySelector("#character-limit"),
+  imageInput: document.querySelector("#image-input"),
+  imagePreviewWrap: document.querySelector("#image-preview-wrap"),
+  imagePreview: document.querySelector("#image-preview"),
+  readImageButton: document.querySelector("#read-image-button"),
+  ocrStatus: document.querySelector("#ocr-status"),
+  resultSection: document.querySelector("#result-section"),
+  scoreGrid: document.querySelector("#score-grid"),
+  findingsList: document.querySelector("#findings-list"),
+  rewriteText: document.querySelector("#rewrite-text"),
+  overallLabel: document.querySelector("#overall-label"),
 };
 
-document.querySelector("#make-video-button").addEventListener("click", () => startUpload(32));
-document.querySelector("#auto-button").addEventListener("click", () => {
-  state.auto = !state.auto;
-  addLog(state.auto ? "自動化ラインを起動しました。" : "自動化ラインを停止しました。");
-  render();
-});
-document.querySelector("#boost-button").addEventListener("click", () => {
-  if (state.money < 80) {
-    addLog("ブーストには80収益が必要です。");
-    return;
-  }
-  state.money -= 80;
-  state.boostUntil = Date.now() + 20000;
-  addLog("20秒間、全ノードの処理速度が上がります。");
-  render();
-});
-document.querySelector("#train-button").addEventListener("click", trainAI);
-
-document.querySelectorAll(".nav-item").forEach((button) => {
+document.querySelectorAll("[data-platform]").forEach((button) => {
   button.addEventListener("click", () => {
-    document.querySelectorAll(".nav-item").forEach((item) => item.classList.remove("active"));
-    document.querySelectorAll(".screen").forEach((screen) => screen.classList.remove("active"));
-    button.classList.add("active");
-    document.querySelector(`#screen-${button.dataset.screen}`).classList.add("active");
+    state.platform = button.dataset.platform;
+    document.querySelectorAll("[data-platform]").forEach((item) => {
+      item.classList.toggle("active", item === button);
+    });
+    els.characterLimit.textContent = state.platform === "x" ? "280" : "2,200";
   });
 });
 
-function startUpload(amount) {
-  state.upload += amount * speedMultiplier();
-  if (state.upload >= 100) completeVideo();
-  else addLog("動画データを生成ラインに流しました。");
-  render();
+els.postText.addEventListener("input", updateCharacterCount);
+els.imageInput.addEventListener("change", previewImage);
+els.readImageButton.addEventListener("click", readImage);
+document.querySelector("#diagnose-button").addEventListener("click", diagnose);
+document.querySelector("#copy-button").addEventListener("click", copyRewrite);
+
+function updateCharacterCount() {
+  els.characterCount.textContent = els.postText.value.length;
 }
 
-function completeVideo() {
-  state.upload = 0;
-  state.videos += 1;
-  const result = calculateOutput();
-  state.money += result.money;
-  state.subs += result.subs;
-  state.research += result.research;
-  state.labLevel = 1 + Math.floor(state.videos / 5);
-  addLog(`${result.genre.name}を投稿。収益+${format(result.money)} / 登録者+${format(result.subs)}`);
-  if (Math.random() < result.viral / 130) {
-    const bonus = Math.round(result.money * 1.7);
-    state.money += bonus;
-    addLog(`トレンドに乗りました。追加収益+${format(bonus)}`);
+function previewImage(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (state.imageUrl) URL.revokeObjectURL(state.imageUrl);
+  state.imageUrl = URL.createObjectURL(file);
+  els.imagePreview.src = state.imageUrl;
+  els.imagePreviewWrap.hidden = false;
+  els.ocrStatus.textContent = "";
+}
+
+async function readImage() {
+  const file = els.imageInput.files?.[0];
+  if (!file) return;
+
+  els.readImageButton.disabled = true;
+  els.ocrStatus.textContent = "OCRを準備しています…";
+
+  try {
+    await loadOcrLibrary();
+    els.ocrStatus.textContent = "画像内の文字を読み取っています…";
+    const result = await window.Tesseract.recognize(file, "jpn+eng", {
+      logger(message) {
+        if (message.status === "recognizing text") {
+          els.ocrStatus.textContent = `読み取り中 ${Math.round(message.progress * 100)}%`;
+        }
+      },
+    });
+    const text = normalizeText(result.data.text);
+    els.postText.value = text;
+    updateCharacterCount();
+    els.ocrStatus.textContent = text ? "読み取りが完了しました。内容を確認してください。" : "文字を認識できませんでした。";
+  } catch {
+    els.ocrStatus.textContent = "読み取りに失敗しました。画像を変えてお試しください。";
+  } finally {
+    els.readImageButton.disabled = false;
   }
 }
 
-function calculateOutput() {
-  const genre = currentGenre();
-  const nodeQuality = state.nodes.reduce((sum, node) => sum + node.quality * node.level, 0);
-  const aiQuality = state.skills.reduce((sum, skill) => sum + skill.value, 0) * 0.5;
-  const safety = state.researches.find((item) => item.id === "safety").done ? 10 : 0;
-  const thumbnail = state.researches.find((item) => item.id === "thumbnail").done ? 8 : 0;
-  const translate = state.researches.find((item) => item.id === "translate").done ? 1.25 : 1;
-  const quality = Math.min(100, 20 + nodeQuality + aiQuality + genre.quality);
-  const viral = Math.min(95, 8 + genre.viral + state.skills[2].value * 0.6 + thumbnail);
-  const risk = Math.max(0, genre.risk + state.nodes.reduce((sum, node) => sum + node.risk, 0) - state.skills[3].value * 0.25 - safety);
-  const money = Math.round((35 + quality * 2.2 + viral * 2.8 - risk) * translate);
-  const subs = Math.round((4 + viral * 0.7 + quality * 0.18) * translate);
-  const research = Math.max(2, Math.round(quality / 22 + state.labLevel));
-  return { genre, quality, viral, risk, money, subs, research };
+function loadOcrLibrary() {
+  if (window.Tesseract) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
 }
 
-function speedMultiplier() {
-  const nodeSpeed = state.nodes.reduce((sum, node) => sum + node.speed * node.level, 0) / state.nodes.length;
-  const boost = Date.now() < state.boostUntil ? 1.7 : 1;
-  const agent = state.researches.find((item) => item.id === "agent").done ? 1.25 : 1;
-  return nodeSpeed * boost * agent;
-}
-
-function upgradeNode(id) {
-  const node = state.nodes.find((item) => item.id === id);
-  const cost = nodeCost(node);
-  if (state.money < cost) {
-    addLog(`${node.name}の強化には${format(cost)}収益が必要です。`);
+function diagnose() {
+  const text = normalizeText(els.postText.value);
+  if (!text) {
+    els.postText.focus();
+    els.postText.setAttribute("aria-invalid", "true");
     return;
   }
-  state.money -= cost;
-  node.level += 1;
-  addLog(`${node.name}をLv.${node.level}に強化しました。`);
-  render();
+  els.postText.removeAttribute("aria-invalid");
+
+  const result = analyze(text, els.category.value, state.platform);
+  renderResult(result);
+  els.resultSection.hidden = false;
+  els.resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function buyResearch(id) {
-  const item = state.researches.find((research) => research.id === id);
-  if (item.done) return;
-  if (state.research < item.cost) {
-    addLog(`${item.name}には研究${item.cost}が必要です。`);
-    return;
+function analyze(text, category, platform) {
+  const matched = rules.filter((rule) => rule.pattern.test(text));
+  const base = { fire: 8, compliance: 7, misunderstanding: 10 };
+
+  matched.forEach((rule) => {
+    base.fire += rule.risk.fire;
+    base.compliance += rule.risk.compliance;
+    base.misunderstanding += rule.risk.misunderstanding;
+  });
+
+  const sensitive = ["medical", "beauty", "finance", "career"].includes(category);
+  const hasClaim = matched.some((rule) => ["absolute", "ranking", "guarantee", "unclear-source"].includes(rule.id));
+  if (sensitive && hasClaim) {
+    base.compliance += 14;
+    base.misunderstanding += 10;
   }
-  state.research -= item.cost;
-  item.done = true;
-  addLog(`${item.name}を解放しました。`);
-  render();
-}
-
-function trainAI() {
-  const cost = 40 + state.skills.reduce((sum, skill) => sum + skill.value, 0);
-  if (state.money < cost) {
-    addLog(`AI学習には${format(cost)}収益が必要です。`);
-    return;
+  if (category === "sidejob" && hasClaim) {
+    base.compliance += 7;
+    base.misunderstanding += 5;
   }
-  state.money -= cost;
-  const target = state.skills[Math.floor(Math.random() * state.skills.length)];
-  target.value = Math.min(100, target.value + 5 + Math.floor(Math.random() * 6));
-  addLog(`${target.name}が成長しました。`);
-  render();
-}
 
-function selectGenre(id) {
-  const genre = genres.find((item) => item.id === id);
-  if (state.labLevel < genre.unlock) {
-    addLog(`${genre.name}はラボLv.${genre.unlock}で解放されます。`);
-    return;
+  const sentences = text.split(/[。！？\n]/).filter(Boolean);
+  const longSentenceCount = sentences.filter((sentence) => sentence.length > 70).length;
+  const readability = clamp(94 - longSentenceCount * 13 - Math.max(0, text.length - 300) / 15);
+  const engagement = engagementScore(text, platform);
+
+  const scores = {
+    fire: clamp(base.fire),
+    compliance: clamp(base.compliance),
+    misunderstanding: clamp(base.misunderstanding),
+    readability,
+    engagement,
+  };
+
+  if (!matched.length) {
+    matched.push({
+      title: "大きな注意表現は見つかりませんでした",
+      detail: "文脈や事実関係によって受け取られ方は変わるため、固有名詞や数値の根拠は投稿前に確認してください。",
+    });
   }
-  state.currentGenre = id;
-  addLog(`${genre.name}向けに生成ラインを調整しました。`);
-  render();
+
+  return {
+    scores,
+    findings: matched,
+    rewrite: buildRewrite(text, category, platform, matched),
+    category,
+  };
 }
 
-function tick() {
-  const now = Date.now();
-  const seconds = (now - state.lastTick) / 1000;
-  state.lastTick = now;
-  if (state.auto) {
-    state.upload += seconds * 4.2 * speedMultiplier();
-    while (state.upload >= 100) completeVideo();
-    render();
+function engagementScore(text, platform) {
+  let score = 48;
+  if (/[？?]/.test(text)) score += 8;
+  if (/\n/.test(text)) score += 6;
+  if (/[0-9０-９]/.test(text)) score += 5;
+  if (platform === "x" && text.length >= 45 && text.length <= 220) score += 12;
+  if (platform === "instagram" && text.length >= 80 && text.length <= 700) score += 12;
+  if (/(絶対|必ず|知らないと損|炎上覚悟)/.test(text)) score -= 10;
+  return clamp(score);
+}
+
+function buildRewrite(text, category, platform, findings) {
+  const ids = findings.map((item) => item.id);
+  let rewrite = text
+    .replace(/絶対に|必ず|確実に|間違いなく|誰でも|例外なく|完全に/g, "場合があります")
+    .replace(/100[%％]/g, "多く")
+    .replace(/No\.?\s*1|ナンバーワン|日本一|世界一/g, "高い評価")
+    .replace(/治る|完治する/g, "改善を感じる場合がある")
+    .replace(/痩せる/g, "体づくりを支える可能性がある")
+    .replace(/儲かる|稼げる/g, "収入につながる可能性がある")
+    .replace(/年収が上がる/g, "年収が上がる場合がある")
+    .replace(/損しない/g, "損失を抑えられる場合がある")
+    .replace(/知らないと損/g, "知っておくと参考になる")
+    .replace(/今すぐ/g, "興味がある方は");
+
+  if (ids.includes("attack") || ids.includes("discrimination")) {
+    rewrite = "私はこの内容に疑問を感じました。事実関係や背景を確認したうえで、異なる意見も含めて冷静に考えたいと思います。";
+  } else if (["medical", "beauty"].includes(category) && ids.some((id) => ["absolute", "guarantee"].includes(id))) {
+    rewrite = `個人の感想として、${stripStrongClaims(text)}と感じました。効果や感じ方には個人差があります。気になる症状がある場合は、医療機関などの専門家へご相談ください。`;
+  } else if (category === "finance" && ids.some((id) => ["absolute", "guarantee"].includes(id))) {
+    rewrite = `${stripStrongClaims(text)}と考えています。ただし、投資には元本割れを含むリスクがあります。判断前に条件や最新情報をご確認ください。`;
+  } else if (category === "career" && ids.some((id) => ["absolute", "guarantee"].includes(id))) {
+    rewrite = `${stripStrongClaims(text)}という選択肢もあります。結果は経験や求人状況によって異なるため、条件を確認したうえで検討してください。`;
+  } else if (category === "sidejob" && ids.some((id) => ["absolute", "guarantee"].includes(id))) {
+    rewrite = `${stripStrongClaims(text)}という方法があります。収益や成果には個人差があり、作業量や条件によって結果は異なります。`;
   }
-  requestAnimationFrame(tick);
+
+  rewrite = normalizeText(rewrite);
+  if (platform === "instagram" && !/#/.test(rewrite)) {
+    rewrite += "\n\n#投稿前チェック #SNS運用";
+  }
+  return rewrite;
 }
 
-function render() {
-  const result = calculateOutput();
-  els.money.textContent = format(state.money);
-  els.subs.textContent = format(state.subs);
-  els.research.textContent = format(state.research);
-  els.labLevel.textContent = `Lv.${state.labLevel}`;
-  els.uploadFill.style.width = `${Math.min(100, state.upload)}%`;
-  els.currentGenre.textContent = result.genre.name;
-  els.videoStatus.textContent = state.auto ? "自動生成中" : state.upload > 0 ? "生成中" : "素材待機中";
-  els.quality.textContent = `${Math.round(result.quality)}%`;
-  els.viral.textContent = `${Math.round(result.viral)}%`;
-  els.risk.textContent = `${Math.round(result.risk)}%`;
-  els.autoButton.classList.toggle("active", state.auto);
-  els.autoButton.textContent = state.auto ? "稼働中" : "自動化";
-  els.aiRank.textContent = `AI-${Math.floor(state.skills.reduce((sum, skill) => sum + skill.value, 0) / 22)}`;
-  renderNodes();
-  renderResearch();
-  renderSkills();
-  renderGenres();
+function stripStrongClaims(text) {
+  return text
+    .replace(/絶対に|必ず|確実に|間違いなく|誰でも|100[%％]/g, "")
+    .replace(/[！!]{2,}/g, "。")
+    .trim();
 }
 
-function renderNodes() {
-  els.board.innerHTML = state.nodes.map((node) => {
-    const cost = nodeCost(node);
-    const canBuy = state.money >= cost;
+function renderResult(result) {
+  const items = [
+    ["炎上リスク", result.scores.fire, true],
+    ["コンプラリスク", result.scores.compliance, true],
+    ["誤解リスク", result.scores.misunderstanding, true],
+    ["読みやすさ", result.scores.readability, false],
+    ["伸びやすさ", result.scores.engagement, false],
+  ];
+
+  els.scoreGrid.innerHTML = items.map(([label, score, inverse]) => {
+    const tone = scoreTone(score, inverse);
     return `
-      <article class="node-card">
-        <div class="node-port">${node.icon}</div>
-        <div class="node-meta">
-          <span>Lv.${node.level}</span>
-          <strong>${node.name}</strong>
-          <div class="node-meter"><i style="width:${Math.min(100, node.level * 18)}%"></i></div>
-        </div>
-        <button class="upgrade-button" type="button" data-upgrade="${node.id}" ${canBuy ? "" : "disabled"}>${format(cost)}</button>
+      <article class="score-card ${tone}">
+        <span>${label}</span>
+        <strong>${Math.round(score)}</strong>
+        <div class="score-bar"><i style="width:${score}%"></i></div>
       </article>
     `;
   }).join("");
-  document.querySelectorAll("[data-upgrade]").forEach((button) => {
-    button.addEventListener("click", () => upgradeNode(button.dataset.upgrade));
-  });
-}
 
-function renderResearch() {
-  els.researchList.innerHTML = state.researches.map((item) => `
-    <article class="research-card ${item.done ? "locked" : ""}">
-      <div>
-        <span>${item.done ? "解放済み" : `研究 ${item.cost}`}</span>
-        <strong>${item.name}</strong>
-        <p>${item.text}</p>
-      </div>
-      <button class="upgrade-button" type="button" data-research="${item.id}" ${item.done ? "disabled" : ""}>${item.done ? "OK" : "解放"}</button>
+  els.findingsList.innerHTML = result.findings.map((finding) => `
+    <article class="finding">
+      <strong>${finding.title}</strong>
+      <p>${finding.detail}</p>
     </article>
   `).join("");
-  document.querySelectorAll("[data-research]").forEach((button) => {
-    button.addEventListener("click", () => buyResearch(button.dataset.research));
-  });
+
+  els.rewriteText.value = result.rewrite;
+  const highestRisk = Math.max(result.scores.fire, result.scores.compliance, result.scores.misunderstanding);
+  els.overallLabel.textContent = highestRisk >= 65 ? "要修正" : highestRisk >= 35 ? "要確認" : "低め";
+  els.overallLabel.className = `overall-label ${highestRisk >= 65 ? "high" : highestRisk >= 35 ? "medium" : "low"}`;
 }
 
-function renderSkills() {
-  els.skillList.innerHTML = state.skills.map((skill) => `
-    <article class="skill-row">
-      <div>
-        <strong>${skill.name}</strong>
-        <div class="skill-bar"><i style="width:${skill.value}%"></i></div>
-      </div>
-      <span>${skill.value}</span>
-    </article>
-  `).join("");
+function scoreTone(score, inverse) {
+  const effective = inverse ? score : 100 - score;
+  if (effective >= 65) return "danger";
+  if (effective >= 35) return "caution";
+  return "safe";
 }
 
-function renderGenres() {
-  els.genreList.innerHTML = genres.map((genre) => {
-    const locked = state.labLevel < genre.unlock;
-    const selected = state.currentGenre === genre.id;
-    return `
-      <article class="genre-card ${locked ? "locked" : ""}">
-        <div>
-          <span>${locked ? `Lv.${genre.unlock}で解放` : selected ? "選択中" : "利用可能"}</span>
-          <strong>${genre.name}</strong>
-          <p>${genre.text}</p>
-        </div>
-        <button class="upgrade-button" type="button" data-genre="${genre.id}">${selected ? "ON" : "選択"}</button>
-      </article>
-    `;
-  }).join("");
-  document.querySelectorAll("[data-genre]").forEach((button) => {
-    button.addEventListener("click", () => selectGenre(button.dataset.genre));
-  });
+async function copyRewrite() {
+  try {
+    await navigator.clipboard.writeText(els.rewriteText.value);
+    document.querySelector("#copy-button").textContent = "コピー済み";
+    setTimeout(() => {
+      document.querySelector("#copy-button").textContent = "コピー";
+    }, 1600);
+  } catch {
+    els.rewriteText.select();
+  }
 }
 
-function currentGenre() {
-  return genres.find((genre) => genre.id === state.currentGenre);
+function normalizeText(text) {
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
-function nodeCost(node) {
-  return Math.round(node.baseCost * Math.pow(1.55, node.level - 1));
+function clamp(value) {
+  return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-function addLog(message) {
-  const item = document.createElement("li");
-  item.textContent = message;
-  els.eventLog.prepend(item);
-  while (els.eventLog.children.length > 8) els.eventLog.lastElementChild.remove();
-}
-
-function format(value) {
-  if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-  if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
-  return String(Math.round(value));
-}
-
-addLog("ラボを起動しました。まずは動画を生成してください。");
-render();
-requestAnimationFrame(tick);
+updateCharacterCount();
