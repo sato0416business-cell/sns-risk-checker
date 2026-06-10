@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#101418" />
+    <title>AI Video Lab</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell" aria-label="AI動画生成ラボ">
+      <section class="top-panel">
+        <div>
+          <p class="eyebrow">AI VIDEO GENERATION LAB</p>
+          <h1>AI動画生成ラボ</h1>
+        </div>
+        <button class="icon-button" id="boost-button" type="button" aria-label="一時ブースト">⚡</button>
+      </section>
+
+      <section class="metrics-grid" aria-label="ラボ指標">
+        <article class="metric">
+          <span>収益</span>
+          <strong id="money">0</strong>
+        </article>
+        <article class="metric">
+          <span>登録者</span>
+          <strong id="subs">0</strong>
+        </article>
+        <article class="metric">
+          <span>研究</span>
+          <strong id="research">0</strong>
+        </article>
+      </section>
+
+      <section class="screen active" id="screen-line">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">PIPELINE</p>
+            <h2>生成ライン</h2>
+          </div>
+          <span class="chip" id="lab-level">Lv.1</span>
+        </div>
+
+        <div class="pipeline-board" id="pipeline-board" aria-label="動画生成パイプライン"></div>
+
+        <div class="action-row">
+          <button class="primary-button" id="make-video-button" type="button">動画を生成</button>
+          <button class="secondary-button" id="auto-button" type="button">自動化</button>
+        </div>
+
+        <section class="upload-card">
+          <div class="upload-visual">
+            <div class="preview-frame">
+              <div class="preview-grid"></div>
+              <strong id="current-genre">雑学ショート</strong>
+              <span id="video-status">素材待機中</span>
+            </div>
+            <div class="upload-meter" aria-label="アップロード進行">
+              <i id="upload-fill"></i>
+            </div>
+          </div>
+          <div class="upload-stats">
+            <div>
+              <span>品質</span>
+              <strong id="quality">0%</strong>
+            </div>
+            <div>
+              <span>バズ率</span>
+              <strong id="viral">0%</strong>
+            </div>
+            <div>
+              <span>リスク</span>
+              <strong id="risk">0%</strong>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section class="screen" id="screen-research">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">RESEARCH</p>
+            <h2>研究ツリー</h2>
+          </div>
+        </div>
+        <div class="research-list" id="research-list"></div>
+      </section>
+
+      <section class="screen" id="screen-ai">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">MODEL CORE</p>
+            <h2>AI育成</h2>
+          </div>
+        </div>
+        <div class="ai-core">
+          <div class="core-orbit">
+            <span></span>
+            <strong id="ai-rank">AI-0</strong>
+          </div>
+          <button class="primary-button" id="train-button" type="button">動画データで学習</button>
+        </div>
+        <div class="skill-list" id="skill-list"></div>
+      </section>
+
+      <section class="screen" id="screen-market">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">MARKET</p>
+            <h2>ジャンル選択</h2>
+          </div>
+        </div>
+        <div class="genre-list" id="genre-list"></div>
+      </section>
+
+      <section class="event-log" aria-label="イベントログ">
+        <div class="log-title">
+          <span></span>
+          <strong>Lab Log</strong>
+        </div>
+        <ul id="event-log"></ul>
+      </section>
+
+      <nav class="bottom-nav" aria-label="メインナビゲーション">
+        <button class="nav-item active" type="button" data-screen="line"><span>⌁</span>ライン</button>
+        <button class="nav-item" type="button" data-screen="research"><span>⌬</span>研究</button>
+        <button class="nav-item" type="button" data-screen="ai"><span>◎</span>AI</button>
+        <button class="nav-item" type="button" data-screen="market"><span>◫</span>市場</button>
+      </nav>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
